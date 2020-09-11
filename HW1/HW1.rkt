@@ -161,8 +161,8 @@
 ; Time taken: about 30 mins
 ; [contract] update-name : string string list -> list
 ; [purpose] To update given list of string by appending 
-; [tests] (update-name "clair" " is nice" '("jc" "clair" "kate"))
-;         (update-name "hello" " world" '("hello" "is the beginning" "of programming"))
+; [tests] (test (update-name "clair" " is nice" '("jc" "clair" "kate")) '("jc" "clair is nice" "kate"))
+;         (test (update-name "hello" " world" '("hello" "is the beginning" "of programming") '("hello world" "is the beginning" "of programming"))
 
 
 (define (build-list target source source-lst result-lst)
@@ -178,12 +178,12 @@
     [else (build-list target source lst '())]))
 
 
-(update-name "clair" " is nice" '("jc" "clair" "kate"))
-(update-name "hello" " world" '("hello" "is the beginning" "of programming"))
+(test (update-name "clair" " is nice" '("jc" "clair" "kate")) '("jc" "clair is nice" "kate"))
+(test (update-name "hello" " world" '("hello" "is the beginning" "of programming")) '("hello world" "is the beginning" "of programming"))
 
 ; Problem 8:
 ; Solved by myself: Y
-; Time taken: about 10 mins
+; Time taken: about 90 mins
 ; [contract] binary-search : list number -> list 
 ; [purpose] To update given list of string by appending 
 ; [tests] (test(binary-search '(1 2 3) 3) '(2 3))
@@ -193,27 +193,22 @@
 ;         (test(binary-search '(1 2 3 4 5 6 7 8 9) 4) ‘(5 2 3 4))
 ;         (test(binary-search '(1 2 3 4 5 6 7 8 9) 3) ‘(5 2 3))
 
+(define (get-mid-index lst) (quotient (- (length lst) 1) 2))
 
 
-
-(define (get-mid-index lst)
-(floor(/ (length lst) 2)))
-
-(define (take-high lst idx)
-  (take-right lst idx))
-
-(define (take-low lst idx)
-  (take lst idx))
-
-(define (take-element lst)
-  (last lst))
-
-(define (recursive-search lst target low high path)
+(define (recursive-search lst target path)
   (cond
-    [(> low high) path]
-    [(= low hi)]))
+    [(empty? lst) path]
+    [(= (list-ref lst (get-mid-index lst)) target) (recursive-search '() target (append path (list target)))]
+    [(> (list-ref lst (get-mid-index lst)) target) (recursive-search (take lst (get-mid-index lst)) target (append path (list (list-ref lst (get-mid-index lst)))))]
+    [(< (list-ref lst (get-mid-index lst)) target) (recursive-search (take-right lst (- (- (length lst) 1) (get-mid-index lst))) target (append path (list (list-ref lst (get-mid-index lst)))))]
+    ))
 
 (define (binary-search lst target)
-  (recursive-search lst target ))
+  (recursive-search lst target '()))
 
-
+(test(binary-search '(1 2 3 4 5 6 7 8) 3) '(4 2 3))
+(test(binary-search '(1 2 3 4 5 6 7 8 9 10) 9) '(5 8 9))
+(test(binary-search '(1 2 3 4 5 6 7) 6) '(4 6))
+(test(binary-search '(1 2 3 4 5 6 7 8 9) 4) '(5 2 3 4))
+(test(binary-search '(1 2 3 4 5 6 7 8 9) 3) '(5 2 3))
