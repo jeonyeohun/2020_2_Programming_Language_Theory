@@ -193,7 +193,7 @@
 ;                                    fun (p b) will be selected
 ;                                         p: 'y
 ;                                         b: (add (id 'x) (id 'y))
-;                                    return (closureV 'y (add (id 'x) (id 'y)) (aSub 'x (numV 3) (mtSub))) => Look this code very carefully. We just return whole closure includes function definition, parameter and its deffered substitution cache. This closure will be saved in cache so function can preserve its bounded identifier constantly. Static scope is achieved!
+;                                    return (closureV 'y (add (id 'x) (id 'y)) (aSub 'x (numV 3) (mtSub))) => Read this code very carefully. We just return whole closure includes function definition, parameter and its deffered substitution cache. This closure will be saved in cache so function can preserve its bounded identifier constantly. Static scope is achieved!
 ;                                -> a-val => (closureV 'y (add (id 'x) (id 'y)) (aSub 'x (numV 3) (mtSub)))
 ;
 ;                           compute (interp (closureV-body f-val) (aSub (closureV-param f-val) a-val (closureV-ds f-val)))
