@@ -129,7 +129,7 @@
 ;     return (ClosureV p b ds) -> (Closure 'x (add (id 'y) (id 'x)) (aSub 'y (numV 10) mtSub))
 
 (interp (parse '{with {x 3} {with {f {fun {y} {+ x y}}} {with {x 5} {f 4}}}}) (mtSub))
- After parsing -> (interp (app (fun 'x (app (fun 'f (app (fun 'x (app (id 'f) (num 4))) (num 5))) (fun 'y (add (id 'x) (id 'y))))) (num 3)) (mtSub))
+; After parsing -> (interp (app (fun 'x (app (fun 'f (app (fun 'x (app (id 'f) (num 4))) (num 5))) (fun 'y (add (id 'x) (id 'y))))) (num 3)) (mtSub))
 
 ; Compute interp.
 ;     fae : (app (fun 'x (app (fun 'f (app (fun 'x (app (id 'f) (num 4))) (num 5))) (fun 'y (add (id 'x) (id 'y))))) (num 3))
@@ -193,7 +193,7 @@
 ;                                    fun (p b) will be selected
 ;                                         p: 'y
 ;                                         b: (add (id 'x) (id 'y))
-;                                    return (closureV 'y (add (id 'x) (id 'y)) (aSub 'x (numV 3) (mtSub)))
+;                                    return (closureV 'y (add (id 'x) (id 'y)) (aSub 'x (numV 3) (mtSub))) => Look this code very carefully. We just return whole closure includes function definition, parameter and its deffered substitution cache. This closure will be saved in cache so function can preserve its bounded identifier constantly. Static scope is achieved!
 ;                                -> a-val => (closureV 'y (add (id 'x) (id 'y)) (aSub 'x (numV 3) (mtSub)))
 ;
 ;                           compute (interp (closureV-body f-val) (aSub (closureV-param f-val) a-val (closureV-ds f-val)))
