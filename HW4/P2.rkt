@@ -106,36 +106,36 @@
     [add (l r) (interp-two l r ds st (lambda (v1 v2 st1)(v*s (num+ v1 v2) st1)))]
     [sub (l r) (interp-two l r ds st (lambda (v1 v2 st1)(v*s (num- v1 v2) st1)))]
     [fun (p b) (v*s (closureV p b ds) st)]
-    [app (f a) (type-case Value*Store (strict(interp f ds st))
+    [app (f a) (type-case Value*Store (strict (interp f ds st))
                  [v*s (f-value f-store)
-                             (local[(define new-address (malloc st))
-                                     (define a-val (exprV a ds st (box #f)))]
-                               (interp (closureV-body f-value)
-                                       (aSub (closureV-param f-value)
-                                             new-address
-                                             (closureV-ds f-value))
-                                       (aSto new-address 
-                                             a-val
-                                             st)))])]
+                      (local([define new-address (malloc f-store)])
+                        (define a-val (exprV a ds st (box #f)))
+                        (interp (closureV-body f-value)
+                                (aSub (closureV-param f-value)
+                                      new-address
+                                      (closureV-ds f-value))
+                                (aSto new-address
+                                      a-val
+                                      f-store)))])]
     [seqn (a b) (interp-two a b ds st (lambda (v1 v2 st1)(v*s v2 st1)))]
-    [newbox (val) (type-case Value*Store (interp val ds st)
+    [newbox (val) (type-case Value*Store (strict (interp val ds st))
                     [v*s (vl st1)
                          (local[(define a (malloc st1))
                                 (define l (exprV (num (numV-n vl)) ds st1 (box #f)))]
                            (v*s(boxV a)
                                (aSto a l st1)))])]
-    [openbox (bx-expr) (type-case Value*Store (interp bx-expr ds st)
+    [openbox (bx-expr) (type-case Value*Store (strict(interp bx-expr ds st))
                          [v*s (bx-val st1)
                               (v*s(store-lookup (boxV-address bx-val)
                                                 st1)
                                   st1)])]
     [setbox (bx-expr val-expr)
-            (interp-two bx-expr val-expr ds st
+            (strict (interp-two bx-expr val-expr ds st
                         (lambda (bx-val val st1)
                           (v*s val
                                (aSto (boxV-address bx-val) 
                                      val 
-                                     st1))))]
+                                     st1)))))]
     )
   ) 
 
