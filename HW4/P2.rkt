@@ -27,14 +27,14 @@
   [exprV (expr BFAE?) (ds DefrdSub?) (st Store?) (value (box/c (or/c false BFAE-Value?)))])
 
 (define (strict v)
-  (displayln (list 'strict-val: v))
+  ;(displayln (list 'strict-val: v))
   (type-case Value*Store v
     [v*s (v1 st1)
          (type-case BFAE-Value v1
            [exprV (expr ds st1 v1-box)
                   (if (not (unbox v1-box))
                       (local [(define v2 (strict (interp expr ds st1)))]
-                        (displayln (list 'innervs: v2))
+                        ;(displayln (list 'innervs: v2))
                         (type-case Value*Store v2
                           [v*s (v2-val v2-sto)
                                (begin (set-box! v1-box v2-val)
@@ -94,7 +94,7 @@
 )
 
 (define (num-op op x y)
-    (numV (op (numV-n x)) (numV-n y)))
+    (numV (op (numV-n x) (numV-n y))))
 (define (num+ x y) (num-op + x y))
 (define (num- x y) (num-op - x y))
 
@@ -108,7 +108,18 @@
     [fun (p b) (v*s (closureV p b ds) st)]
     [app (f a) (type-case Value*Store (strict (interp f ds st))
                  [v*s (f-value f-store)
-                      (local([define new-address (malloc f-store)])
+                      (type-case BFAE a
+                        [newbox (val) (type-case Value*Store (interp a ds f-store)
+                                     [v*s (a-value a-store)
+                                          (local ([define new-address (malloc a-store)])
+                                            (interp (closureV-body f-value)
+                                                    (aSub (closureV-param f-value)
+                                                          new-address
+                                                          (closureV-ds f-value))
+                                                    (aSto new-address
+                                                          a-value
+                                                          a-store)))])]
+                        [else (local([define new-address (malloc f-store)])
                         (define a-val (exprV a ds st (box #f)))
                         (interp (closureV-body f-value)
                                 (aSub (closureV-param f-value)
@@ -116,7 +127,8 @@
                                       (closureV-ds f-value))
                                 (aSto new-address
                                       a-val
-                                      f-store)))])]
+                                      f-store)))]
+                          )])]
     [seqn (a b) (interp-two a b ds st (lambda (v1 v2 st1)(v*s v2 st1)))]
     [newbox (val) (type-case Value*Store (strict (interp val ds st))
                     [v*s (vl st1)
@@ -124,7 +136,7 @@
                                 (define l (exprV (num (numV-n vl)) ds st1 (box #f)))]
                            (v*s(boxV a)
                                (aSto a l st1)))])]
-    [openbox (bx-expr) (type-case Value*Store (strict(interp bx-expr ds st))
+    [openbox (bx-expr) (type-case Value*Store (interp bx-expr ds st)
                          [v*s (bx-val st1)
                               (v*s(store-lookup (boxV-address bx-val)
                                                 st1)
@@ -146,7 +158,4 @@
            [v*s (val2 st3)
                 (handle val1 val2 st3)])]))
 
-;(run '{newbox 1} (mtSub) (mtSto))
-;run '{with {b {newbox 7}}
-;         {setbox b 10}} (mtSub) (mtSto))
-;(run '{newbox 1} (mtSub) (mtSto))
+
