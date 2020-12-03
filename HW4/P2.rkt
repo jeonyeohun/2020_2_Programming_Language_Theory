@@ -3,11 +3,6 @@
 ; Solved by myself: N
 ; Time Taken: 20 hrs
 
-;[contract]
-;[purpose]
-(define (run sexp ds st)
-  (interp (parse sexp) ds st))
-
 (define-type BFAE
   [num (n number?)]
   [add (lhs BFAE?) (rhs BFAE?)]
@@ -32,8 +27,15 @@
   [boxV (address integer?)]
   [exprV (expr BFAE?) (ds DefrdSub?) (st Store?) (value (box/c (or/c false BFAE-Value?)))])
 
-;[contract]
-;[purpose]
+(define-type Value*Store
+  [v*s (value BFAE-Value?) (store Store?)])
+
+(define-type DefrdSub
+  [mtSub]
+  [aSub (name symbol?) (address integer?) (ds DefrdSub?)])
+
+;[contract] strict: v -> Value*Store 
+;[purpose] evaluate deffered expression
 (define (strict v)
   (type-case Value*Store v
     [v*s (v1 st1)
@@ -48,30 +50,22 @@
                       (v*s (unbox v1-box) st1))]
            [else v])]))
 
-(define-type Value*Store
-  [v*s (value BFAE-Value?) (store Store?)])
 
-;[contract]
-;[purpose]
+;[contract] malloc: st -> number
+;[purpose] set new adress number that has not been used
 (define (malloc st)
   (+ 1 (max-address st)))
 
-;[contract]
-;[purpose]
+;[contract] max-address: st -> number
+;[purpose] set new address for aStore value
 (define (max-address st)
   (type-case Store st
     [mtSto () 0]
     [aSto (n v st)
           (max n (max-address st))]))
 
-;[contract]
-;[purpose]
-(define-type DefrdSub
-  [mtSub]
-  [aSub (name symbol?) (address integer?) (ds DefrdSub?)])
-
-;[contract]
-;[purpose]
+;[contract] lookup: name ds -> number
+;[purpose] return address number for given identifier
 (define (lookup name ds)
   (type-case DefrdSub ds
     [mtSub() (error 'lookup "free id")]
@@ -79,8 +73,8 @@
                             adr
                             (lookup name saved))]))
 
-;[contract]
-;[purpose]
+;[contract] store-lookup: address sto -> BFAE-Value
+;[purpose] return aSto value of given address
 (define (store-lookup address sto)
   (type-case Store sto
     [mtSto() (error 'store-lookup "No value")]
@@ -89,8 +83,8 @@
              value
              (store-lookup address rest-store))]))
 
-;[contract]
-;[purpose]
+;[contract] parse: sexp -> BFAE
+;[purpose] create BFAE from concrete code
 (define (parse sexp)
   (match sexp
     [(? number?)                    (num sexp)]
@@ -108,23 +102,22 @@
   )
 )
 
-;[contract]
-;[purpose]
+;[contract] num-op: op x y -> number
+;[purpose] caculate given numV wuth given operator
 (define (num-op op x y)
     (numV (op (numV-n x) (numV-n y))))
 
-;[contract]
-;[purpose]
+;[contract] num+: x y -> number
+;[purpose] call function for plus evaluation
 (define (num+ x y) (num-op + x y))
 
-;[contract]
-;[purpose]
+;[contract] num-: x y -> number
+;[purpose] call function for minus evaluation
 (define (num- x y) (num-op - x y))
 
-;[contract]
-;[purpose]
+;[contract] interp: expr ds st -> Value*Store
+;[purpose] interprete parsed BFAE into Value*Store
 (define (interp expr ds st)
-  ;(displayln (list 'expr: expr 'ds: ds 'st: st))
   (type-case BFAE expr
     [num (n) (v*s (numV n) st)]
     [id (s) (v*s (store-lookup (lookup s ds) st) st)]
@@ -174,8 +167,8 @@
     )
   ) 
 
-;[contract]
-;[purpose]
+;[contract] interp-two: expr1 expr2 ds st -> Value*Store
+;[purpose] integrate interpreter of similar logic sequence of original interp function 
 (define (interp-two expr1 expr2 ds st handle)
   (type-case Value*Store (strict (interp expr1 ds st))
     [v*s (val1 st2)
