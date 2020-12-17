@@ -64,6 +64,11 @@
   [closureV (param symbol?) (body RCFAE?) (ds DefrdSub?)])
 
 (define (interp rcfae ds)
+  (display "rcfae: ")
+  (displayln rcfae)
+  (display "ds: ")
+  (displayln ds)
+  (displayln "\n")
   (type-case RCFAE rcfae
     [num (n) (numV n)]
     [add (l r) (num+ (interp l ds) (interp r ds))]
@@ -86,5 +91,77 @@
         (begin
           (set-box! value-holder (interp named-expr new-ds))
           (interp fst-call new-ds)))]))
+; put dummy value into value-holder when the recursive function called. new-ds will hold the recursive function name, and the dummy value, and current ds.
+; begin block starts. it sets value-holder to interpreted value of function body with new-ds.
+; interpret fst-call with new-ds --> this will create (closureV function-name function-body new-ds)
+
+(interp (parse '{rec {count {fun {n} {if0 n 0 {+ 1 {count {- n 1}}}}}} {count 8}}) (mtSub))
+
+;; step-by-step result:
+
+;rcfae: #(struct:rec count #(struct:fun n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1)))))) #(struct:app #(struct:id count) #(struct:num 8)))
+;ds: #(struct:mtSub)
+;    go to rec branch. create value-holder with dummy value and new-ds of aRecSub with recursive function name, value holder and ds.  
+;    call set-box to give function body and new-ds as a value-holder.
+;    call interp to interpret the function body.
+     ;--> interpreting function body : in this call, we simply create closureV of our function
+          ;rcfae: #(struct:fun n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))))
+          ;ds: #(struct:aRecSub count #&#(struct:numV 198) #(struct:mtSub))
+          ;return: (closureV n (if0 (num 0) (id n) (add (num 1) (app (id count) (sub (id n) (num 1))))) (app (id count) (num 8)) (aRecSub count (numV 198) (mtSub)))
+;    the returned closureV will be set into value-holder.
+;    now, call interp to interpret the first function call expression.
+     ;--> interpreting the first call with new-ds :
+          ;rcfae: #(struct:app #(struct:id count) #(struct:num 8)
+          ;ds: #0=#(struct:aRecSub count #&#(struct:closureV n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))) #0#) #(struct:mtSub))
+               ; 1) define ftn (interp f ds) --> lookup function will be called. the function will look up the name "count" in aRecSub. If there is the name, the function will return the value that has been held in the matching box.
+                   ;In this case, the closureV of recursive function body will be returned. This closureV will be defined as "ftn"
+               ; 2) call interp to interpret the closureV
+                    ; first, interp argument of function call and put it into aSub with function name and ds in closureV. --> the argument is 8.
+                             ; return (num 8)
+                    ; The aSub to interp function body is : (aSub (id count) (numV 8) (aRecSub count (closureV n (if0 (id n) (num 0) (add (num 1) (app (id count) (sub (id n) (num 1)))))))(mtSub))
+                    ; now, interp the function body "(closureV-body ftn)".
+                             ;rcfae: #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1)))))
+                             ;ds: #(struct:aSub n #(struct:numV 8) #0=#(struct:aRecSub count #&#(struct:closureV n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))) #0#) #(struct:mtSub)))
+                             ;We have (numV 8) as an argument of the function call. Since it is bigger than (num 0), it will return (app (id count) (sub (numV 8) (numV 1))), which is (app (id count) (num 8))
+                             ;call (app (id count) (num 7))
+
+; Everything is same but the result of the interpreting argument part is changed to (numV 7)
+; Therefore we have:
+     ;rcfae: #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1)))))
+     ;ds: #(struct:aSub n #(struct:numV 7) #0=#(struct:aRecSub count #&#(struct:closureV n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))) #0#) #(struct:mtSub)))
+
+; get (numV 7) by searching (id n) in aSub
+     ;rcfae: #(struct:id n)
+     ;ds: #(struct:aSub n #(struct:numV 7) #0=#(struct:aRecSub count #&#(struct:closureV n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))) #0#) #(struct:mtSub)))
+
+; Since 7 is not 0, interp the else branch  
+     ;rcfae: #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))
+     ;ds: #(struct:aSub n #(struct:numV 7) #0=#(struct:aRecSub count #&#(struct:closureV n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))) #0#) #(struct:mtSub)))
+
+; get numV 1 from num 1
+    ;rcfae: #(struct:num 1)
+    ;ds: #(struct:aSub n #(struct:numV 7) #0=#(struct:aRecSub count #&#(struct:closureV n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))) #0#) #(struct:mtSub)))
+
+; interp (count (- n 1)) part
+    ;rcfae: #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1)))
+    ;ds: #(struct:aSub n #(struct:numV 7) #0=#(struct:aRecSub count #&#(struct:closureV n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))) #0#) #(struct:mtSub)))
+
+; interp function name 'count' to id
+    ;rcfae: #(struct:id count) 
+    ;ds: #(struct:aSub n #(struct:numV 7) #0=#(struct:aRecSub count #&#(struct:closureV n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))) #0#) #(struct:mtSub)))
+
+; interp expression 'sub'
+    ;rcfae: #(struct:sub #(struct:id n) #(struct:num 1))
+    ;ds: #(struct:aSub n #(struct:numV 7) #0=#(struct:aRecSub count #&#(struct:closureV n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))) #0#) #(struct:mtSub)))
 
 
+; afterthis point, the else branch is ready to computed --> {+ 1 {count 6}}. now call {count 6}
+
+; same steps will be executed untill the argument of count in {+ 1 {count n}} reach to 0
+
+;; when the argument is 0:
+    ;rcfae: #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1)))))
+    ;ds: #(struct:aSub n #(struct:numV 0) #0=#(struct:aRecSub count #&#(struct:closureV n #(struct:if0 #(struct:id n) #(struct:num 0) #(struct:add #(struct:num 1) #(struct:app #(struct:id count) #(struct:sub #(struct:id n) #(struct:num 1))))) #0#) #(struct:mtSub)))
+    ; the expression just returns 0 instead of calling new count.
+
+;; All delayed arithmetic computation is executed one by one. therefore, the result would be (num 8)
