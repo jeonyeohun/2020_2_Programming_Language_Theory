@@ -116,7 +116,7 @@
                                             (aSub rc-param
                                                   addr ; pass address of the identifier when interpreting the funtion body
                                                   rc-ds)
-                                           st))]
+                                           f-store))]
                         [else (error interp "trying to apply a number")])])]
     [seqn (a b) (interp-two a b ds st (lambda (v1 v2 st1)(v*s v2 st1)))]
     ; All process in newbox is ultimately used to create (v*s boxV) instance that has information user wants to put into the initial box. 
