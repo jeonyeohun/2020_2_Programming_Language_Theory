@@ -165,3 +165,5 @@
     ; the expression just returns 0 instead of calling new count.
 
 ;; All delayed arithmetic computation is executed one by one. therefore, the result would be (num 8)
+
+(interp (parse '{rec {fibonacci {fun {n} {if0 n 0 {+ {fibonacci {- n 2}} {fibonacci {- n 1}}}}}} {fibonacci 8}}) (mtSub))

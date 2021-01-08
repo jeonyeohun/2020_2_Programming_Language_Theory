@@ -98,3 +98,8 @@
   (interp (parse sexp) ds (lambda (x) x)))
 
 (run '{withcc k {+ 1 {k 3}}} (mtSub))
+
+(define *k* #f)
+(+ ((call/cc (lambda (k)
+               (begin (set! *k* k)
+                      (k *)))) 3 4) 5)
